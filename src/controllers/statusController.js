@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import pool, { query } from '../db/neon.js';
 
-// Initialize Clients
-const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+// Initialize Clients Safely
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
 export const getSystemStatus = async (req, res) => {
     // Core Services Definition
@@ -137,6 +139,7 @@ const withTimeout = (promise, ms = 3000) => {
 };
 
 async function checkSupabase() {
+    if (!supabase) return { status: 'degraded', latency: 0, error: "Configuration Missing" };
     const start = Date.now();
     try {
         const { error } = await withTimeout(supabase.from('profiles').select('id').limit(1));
@@ -148,6 +151,7 @@ async function checkSupabase() {
 }
 
 async function checkNeon() {
+    if (!pool) return { status: 'degraded', latency: 0, error: "Configuration Missing" };
     const start = Date.now();
     try {
         await withTimeout(pool.query('SELECT 1'));
