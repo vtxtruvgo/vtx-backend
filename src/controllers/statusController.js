@@ -157,6 +157,20 @@ export const resolveAllIncidents = async (req, res) => {
     }
 };
 
+    }
+};
+
+// Delete Incident
+export const deleteIncident = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await query("DELETE FROM system_incidents WHERE id = $1", [id]);
+        res.redirect('/vtx/2026/admincenter');
+    } catch (e) {
+        res.status(500).send("Failed to delete incident: " + e.message);
+    }
+};
+
 // --- Check Functions ---
 
 // Timeout helper to prevent hanging checks
@@ -432,15 +446,22 @@ const renderAdminCenter = (status) => `
                     <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Recent Updates</h3>
                     <div class="space-y-4">
                         ${status.incidents.map(i => `
-                            <div class="border-l-4 ${getSeverityColor(i.severity)} pl-3 py-1">
-                                <div class="flex justify-between items-start">
-                                    <h4 class="font-bold text-sm text-gray-800">${i.title}</h4>
-                                    <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">${new Date(i.created_at).toLocaleDateString()}</span>
+                            <div class="border-l-4 ${getSeverityColor(i.severity)} pl-3 py-1 flex justify-between group">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-sm text-gray-800">${i.title}</h4>
+                                        <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">${new Date(i.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">Service: <span class="font-mono text-gray-700">${i.affected_service || 'all'}</span></div>
+                                    <span class="text-[10px] uppercase font-bold mt-2 inline-block ${i.status === 'resolved' ? 'text-green-600' : 'text-orange-600'}">
+                                        ${i.status}
+                                    </span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-1">Service: <span class="font-mono text-gray-700">${i.affected_service || 'all'}</span></div>
-                                <span class="text-[10px] uppercase font-bold mt-2 inline-block ${i.status === 'resolved' ? 'text-green-600' : 'text-orange-600'}">
-                                    ${i.status}
-                                </span>
+                                <form action="/vtx/2026/admincenter/incidents/${i.id}/delete" method="POST" onsubmit="return confirm('Delete this incident forever?');">
+                                    <button type="submit" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-700 font-bold px-2 py-1 text-xs transition-opacity">
+                                        ✕
+                                    </button>
+                                </form>
                             </div>
                         `).join('')}
                     </div>
