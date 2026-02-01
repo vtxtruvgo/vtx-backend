@@ -1,17 +1,24 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import aiRoutes from './routes/aiRoutes.js';
+
+dotenv.config();
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.json({ status: 'active', service: 'VTX Backend' });
+  res.json({ status: 'active', service: 'VTX Backend', version: '1.0.0' });
 });
 
-if (require.main === module) {
+app.use('/api/ai', aiRoutes);
+
+if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(\Server running on port \\));
 }
 
-module.exports = app;
+export default app;
