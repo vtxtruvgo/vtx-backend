@@ -157,8 +157,7 @@ export const resolveAllIncidents = async (req, res) => {
     }
 };
 
-    }
-};
+
 
 // Delete Incident
 export const deleteIncident = async (req, res) => {
