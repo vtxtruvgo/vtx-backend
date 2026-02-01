@@ -31,4 +31,16 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
+// Safe Error Handling
+app.use((err, req, res, next) => {
+  console.error("Critical Server Error:", err);
+  res.status(500).send(`
+        <html><body>
+        <h1>System Recovering...</h1>
+        <p>The status page encountered an internal error. Please check back in 1 minute.</p>
+        <pre>${process.env.NODE_ENV === 'development' ? err.stack : err.message}</pre>
+        </body></html>
+    `);
+});
+
 export default app;
