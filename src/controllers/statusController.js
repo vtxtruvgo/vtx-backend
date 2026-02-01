@@ -151,7 +151,7 @@ export const createIncident = async (req, res) => {
 export const resolveAllIncidents = async (req, res) => {
     try {
         await query("UPDATE system_incidents SET status = 'resolved' WHERE status != 'resolved'");
-        res.send("✅ All incidents marked as resolved. System should be Green.");
+        res.redirect('/vtx/2026/admincenter');
     } catch (e) {
         res.status(500).send("Failed: " + e.message);
     }
@@ -323,10 +323,15 @@ const renderAdminCenter = (status) => `
                 <h1 class="text-2xl font-bold">CodeKrafts Admin</h1>
                 <p class="text-gray-500 text-sm">Operations Dashboard</p>
             </div>
-             <div class="text-right">
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">System Status</div>
-                <div class="text-lg font-bold ${status.system.global_status === 'operational' ? 'text-green-600' : 'text-red-600'}">
-                    ${status.system.global_status.toUpperCase()}
+             <div class="text-right flex items-center gap-4">
+                <a href="/vtx/2026/admincenter/resolve_all" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-4 rounded transition-colors uppercase tracking-wider">
+                    Force System Online
+                </a>
+                <div>
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">System Status</div>
+                    <div class="text-lg font-bold ${status.system.global_status === 'operational' ? 'text-green-600' : 'text-red-600'}">
+                        ${status.system.global_status.toUpperCase()}
+                    </div>
                 </div>
             </div>
         </header>
