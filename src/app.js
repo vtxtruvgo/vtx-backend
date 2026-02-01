@@ -16,11 +16,8 @@ import statusRoutes from './routes/statusRoutes.js';
 import { getSystemStatus } from './controllers/statusController.js';
 
 // If accessing via status subdomain or root, show status page
-app.get('/', (req, res, next) => {
-  // Optional: Check hostname if you want to be strict, but for now serve status at root
-  // to make status.codekraft.truvgo.me work out of the box.
-  return getSystemStatus(req, res);
-});
+// Mount Status Routes at Root to handle Public Page AND Admin Routes
+app.use('/', statusRoutes);
 
 app.use('/api/ai', aiRoutes);
 // Analytics Route (Offload to Neon)
