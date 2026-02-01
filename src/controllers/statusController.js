@@ -88,10 +88,11 @@ export const getSystemStatus = async (req, res, next) => {
             // Build History Bars
             const history = historyDates.map(dateStr => {
                 // Find incidents on this day
-                const dayIncidents = rows.filter(i =>
-                    i.created_at.startsWith(dateStr) &&
-                    (i.affected_service === key || i.affected_service === 'all')
-                );
+                const dayIncidents = rows.filter(i => {
+                    const iDate = new Date(i.created_at).toISOString().split('T')[0];
+                    return iDate === dateStr &&
+                        (i.affected_service === key || i.affected_service === 'all');
+                });
 
                 // Determine day color
                 let dayStatus = 'operational';
