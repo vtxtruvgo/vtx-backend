@@ -809,15 +809,10 @@ export default async function handler(req, res) {
             }
         });
 
-    } catch (fbErr) {
-        console.error('Log Error:', fbErr.message)
-    }
-}
-
-return res.status(200).json({ success: true, reply: responseText })
+        return res.status(200).json({ success: true, reply: responseText })
 
     } catch (error) {
-    console.error('Bot Error:', error)
-    return res.status(500).json({ error: error.message })
-}
+        console.error('Bot Error:', error)
+        return res.status(500).json({ error: error.message })
+    }
 }
