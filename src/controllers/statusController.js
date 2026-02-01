@@ -147,6 +147,16 @@ export const createIncident = async (req, res) => {
     }
 };
 
+// Emergency Fix Route to Clear All Incidents
+export const resolveAllIncidents = async (req, res) => {
+    try {
+        await query("UPDATE system_incidents SET status = 'resolved' WHERE status != 'resolved'");
+        res.send("✅ All incidents marked as resolved. System should be Green.");
+    } catch (e) {
+        res.status(500).send("Failed: " + e.message);
+    }
+};
+
 // --- Check Functions ---
 
 // Timeout helper to prevent hanging checks
