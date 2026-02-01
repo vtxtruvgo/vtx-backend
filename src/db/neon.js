@@ -7,34 +7,34 @@ const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 let pool;
 
 if (connectionString) {
-    pool = new Pool({
-        connectionString,
-        ssl: {
-            rejectUnauthorized: false
-        }
-    });
-    console.log("🔌 Connected to Neon DB");
+  pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+  console.log("🔌 Connected to Neon DB");
 } else {
-    console.warn("⚠️ Neon DB credentials missing. Logs will be skipped.");
+  console.warn("⚠️ Neon DB credentials missing. Logs will be skipped.");
 }
 
 export const query = async (text, params) => {
-    if (!pool) return null;
-    const start = Date.now();
-    try {
-        const res = await pool.query(text, params);
-        const duration = Date.now() - start;
-        // Optional: console.log('executed query', { text, duration, rows: res.rowCount });
-        return res;
-    } catch (error) {
-        console.error('Neon Query Error:', error);
-        throw error;
-    }
+  if (!pool) return null;
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    // Optional: console.log('executed query', { text, duration, rows: res.rowCount });
+    return res;
+  } catch (error) {
+    console.error('Neon Query Error:', error);
+    throw error;
+  }
 };
 
 export const createLogTable = async () => {
-    if (!pool) return;
-    const createTableQuery = `
+  if (!pool) return;
+  const createTableQuery = `
       CREATE TABLE IF NOT EXISTS ai_execution_logs (
         id SERIAL PRIMARY KEY,
         trigger_id TEXT,
@@ -46,9 +46,9 @@ export const createLogTable = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    await query(createTableQuery);
+  await query(createTableQuery);
 
-    const createIncidentsQuery = `
+  const createIncidentsQuery = `
       CREATE TABLE IF NOT EXISTS system_incidents (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -59,7 +59,14 @@ export const createLogTable = async () => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
-    await query(createIncidentsQuery);
+  await query(createIncidentsQuery);
+
+  try {
+    // Migration: Add affected_service column if missing
+    await query(`ALTER TABLE system_incidents ADD COLUMN IF NOT EXISTS affected_service TEXT DEFAULT 'all'`);
+  } catch (e) {
+    console.log("Migration Note: affected_service column might already exist or DB does not support IF NOT EXISTS. Skipping.");
+  }
 };
 
 // Auto-init table on module load (safe idempotent check)
