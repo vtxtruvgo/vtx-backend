@@ -47,6 +47,19 @@ export const createLogTable = async () => {
       );
     `;
     await query(createTableQuery);
+
+    const createIncidentsQuery = `
+      CREATE TABLE IF NOT EXISTS system_incidents (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT DEFAULT 'investigating', -- investigating, identified, monitoring, resolved
+        severity TEXT DEFAULT 'minor', -- minor, major, critical, maintenance
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    await query(createIncidentsQuery);
 };
 
 // Auto-init table on module load (safe idempotent check)

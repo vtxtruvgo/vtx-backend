@@ -9,6 +9,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Enable Form Support for Admin Console
 
 // Status Page & Root Handler
 import statusRoutes from './routes/statusRoutes.js';
