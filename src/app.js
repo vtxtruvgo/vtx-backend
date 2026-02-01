@@ -19,6 +19,10 @@ app.use('/api/ai', aiRoutes);
 import analyticsRoutes from './routes/analyticsRoutes.js';
 app.use('/api/analytics', analyticsRoutes);
 
+// Status Page
+import statusRoutes from './routes/statusRoutes.js';
+app.use('/status', statusRoutes); // Accessible at /status (HTML) and /status?format=json (JSON)
+
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(\Server running on port \\));
