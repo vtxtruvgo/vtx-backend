@@ -50,6 +50,8 @@ export const createLogTable = async () => {
 };
 
 // Auto-init table on module load (safe idempotent check)
-createLogTable();
+// Auto-init table on module load (safe idempotent check)
+// Catch errors to prevent crashing the entire app if DB is unreachable
+createLogTable().catch(err => console.error("⚠️ Failed to init Neon table:", err.message));
 
 export default pool;
