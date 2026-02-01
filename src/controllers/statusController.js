@@ -131,7 +131,20 @@ export const getSystemStatus = async (req, res, next) => {
     }
 };
 
-// ... (createIncident stays same) ...
+// API to Create Incident
+export const createIncident = async (req, res) => {
+    const { title, description, severity, status, affected_service } = req.body;
+    try {
+        await query(
+            `INSERT INTO system_incidents (title, description, severity, status, affected_service) VALUES ($1, $2, $3, $4, $5)`,
+            [title, description, severity || 'minor', status || 'investigating', affected_service || 'all']
+        );
+        res.redirect('/vtx/2026/admincenter');
+    } catch (e) {
+        console.error("Incident Creation Failed", e);
+        res.status(500).send("Failed to create incident: " + e.message);
+    }
+};
 
 // --- Check Functions ---
 
