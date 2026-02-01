@@ -140,6 +140,7 @@ const renderPublicPage = (status) => `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeCrafts Status</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -170,7 +171,7 @@ const renderPublicPage = (status) => `
     </div>
     `).join('')}
 
-    <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 mb-6">
         <div class="divide-y divide-slate-100">
             ${Object.values(status.services).map(s => `
             <div class="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
@@ -189,19 +190,83 @@ const renderPublicPage = (status) => `
             </div>
             `).join('')}
         </div>
-         <div class="bg-slate-50 px-6 py-4 text-center border-t border-slate-100">
-             <p class="text-xs text-slate-400">Incident History (7 Days)</p>
-             <div class="mt-2 space-y-2">
-                 ${status.incidents.filter(i => i.status === 'resolved').slice(0, 3).map(i => `
-                    <div class="text-xs flex justify-between text-slate-500">
-                        <span>${i.title}</span>
-                         <span class="text-green-600">Resolved</span>
-                    </div>
-                 `).join('')}
-                 ${status.incidents.length === 0 ? '<span class="text-xs text-slate-300">No incidents in past week.</span>' : ''}
-             </div>
-        </div>
     </div>
+
+    <!-- Live Metrics Graph -->
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 mb-6 p-6">
+        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Live System Latency</h3>
+        <canvas id="publicLatencyChart" height="150"></canvas>
+    </div>
+
+    <div class="max-w-xl w-full text-center">
+         <p class="text-xs text-slate-400">Incident History (7 Days)</p>
+         <div class="mt-2 space-y-2">
+             ${status.incidents.filter(i => i.status === 'resolved').slice(0, 3).map(i => `
+                <div class="text-xs flex justify-between bg-white px-4 py-2 rounded shadow-sm text-slate-500 max-w-sm mx-auto">
+                    <span>${i.title}</span>
+                     <span class="text-green-600 font-bold">Resolved</span>
+                </div>
+             `).join('')}
+             ${status.incidents.length === 0 ? '<span class="text-xs text-slate-300">No incidents in past week.</span>' : ''}
+         </div>
+    </div>
+
+    <div class="mt-8 mb-4">
+         <a href="/status/admin" class="text-xs text-blue-300 hover:text-blue-500 hover:underline transition-colors">Admin Dashboard</a>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('publicLatencyChart').getContext('2d');
+        const labels = ['Api', 'Supabase', 'Neon', 'Media', 'Realtime'];
+        const data = [
+            ${status.services.api.latency},
+            ${status.services.supabase.latency},
+            ${status.services.neon.latency},
+            ${status.services.cloudinary.latency},
+            ${status.services.firebase.latency}
+        ];
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: data,
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.2)', // Blue
+                        'rgba(16, 185, 129, 0.2)', // Green
+                        'rgba(236, 72, 153, 0.2)', // Pink
+                        'rgba(245, 158, 11, 0.2)', // Orange
+                        'rgba(139, 92, 246, 0.2)'  // Purple
+                    ],
+                    borderColor: [
+                        'rgb(59, 130, 246)',
+                        'rgb(16, 185, 129)',
+                        'rgb(236, 72, 153)',
+                        'rgb(245, 158, 11)',
+                        'rgb(139, 92, 246)'
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { display: false },
+                        ticks: { display: false }
+                    },
+                    x: { 
+                        grid: { display: false } 
+                    }
+                },
+                plugins: { legend: { display: false }, tooltip: { enabled: true } }
+            }
+        });
+    </script>
 </body>
 </html>
 `;
