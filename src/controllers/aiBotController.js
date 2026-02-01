@@ -788,30 +788,36 @@ export default async function handler(req, res) {
             })
         }
 
-        // Log to Firebase
-        if (db) {
+        // Log to Neon DB (Heavy storage offload)
+        // We use fire-and-forget for logging to not block response
+        import('../db/neon.js').then(async ({ query }) => {
             try {
-                await addDoc(collection(db, 'ai_memories'), {
-                    action: actionType,
-                    input: content,
-                    output: responseText,
-                    user: item.user_id || 'anonymous',
-                    user_details: userProfile || null, // Rich user info
-                    source: table,
-                    model: configMap.ai_model || 'unknown',
-                    tokens: responseText.length / 4, // Rough estimate
-                    context_length: content.length,
-                    createdAt: new Date().toISOString()
-                })
-            } catch (fbErr) {
-                console.error('Firebase Log Error:', fbErr.message)
+                await query(
+                    `INSERT INTO ai_execution_logs (trigger_id, input_text, output_text, trigger_source, model, tokens) VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [
+                        item.id,
+                        content,
+                        responseText,
+                        table,
+                        configMap.ai_model || 'unknown',
+                        Math.ceil(responseText.length / 4)
+                    ]
+                );
+                console.log('✅ Logged to Neon DB');
+            } catch (neonErr) {
+                console.error('Neon Log Error:', neonErr.message);
             }
-        }
+        });
 
-        return res.status(200).json({ success: true, reply: responseText })
+    } catch (fbErr) {
+        console.error('Log Error:', fbErr.message)
+    }
+}
+
+return res.status(200).json({ success: true, reply: responseText })
 
     } catch (error) {
-        console.error('Bot Error:', error)
-        return res.status(500).json({ error: error.message })
-    }
+    console.error('Bot Error:', error)
+    return res.status(500).json({ error: error.message })
+}
 }
