@@ -195,87 +195,71 @@ async function checkFirebase() {
 
 // --- Renderers ---
 
+// --- Renderers ---
+
 const renderPublicPage = (status) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeCrafts Status</title>
+    <title>CodeKrafts Status</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3 { font-family: 'Playfair Display', serif; }
-        .bar-tooltip:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            white-space: nowrap;
-            margin-bottom: 4px;
-            z-index: 10;
-        }
+        body { font-family: Arial, sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-900 min-h-screen flex flex-col items-center py-12 px-4">
+<body class="bg-gray-100 text-gray-900 min-h-screen flex flex-col items-center py-10 px-4">
     
     <!-- Branding -->
-    <div class="mb-10 text-center">
-        <h1 class="text-4xl font-bold text-slate-900 mb-2">CodeCrafts Status</h1>
-        <p class="text-slate-500 font-medium">System Performance & Updates</p>
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl font-bold mb-1">CodeKrafts Status</h1>
+        <p class="text-gray-500 text-sm">System Operations</p>
     </div>
 
-    <div class="max-w-3xl w-full space-y-8">
+    <div class="max-w-3xl w-full space-y-6">
         
         <!-- Global Status -->
-        <div class="bg-white rounded border border-slate-200 p-6 flex items-center justify-between shadow-sm">
+        <div class="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-between shadow-sm">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">Current Status</h2>
-                <p class="text-sm text-slate-500 mt-1">Real-time status of all services</p>
+                <h2 class="text-xl font-bold">Current Status</h2>
             </div>
-            <div class="flex items-center gap-2 px-4 py-2 rounded-full ${status.system.global_status === 'operational' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'} border ${status.system.global_status === 'operational' ? 'border-emerald-100' : 'border-red-100'}">
-                <span class="w-3 h-3 rounded-full ${status.system.global_status === 'operational' ? 'bg-emerald-500' : 'bg-red-500'}"></span>
+            <div class="flex items-center gap-2 px-4 py-2 rounded-full ${status.system.global_status === 'operational' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                <span class="w-3 h-3 rounded-full ${status.system.global_status === 'operational' ? 'bg-green-500' : 'bg-red-500'}"></span>
                 <span class="font-bold uppercase text-xs tracking-wider">${status.system.global_status.replace('_', ' ')}</span>
             </div>
         </div>
 
         <!-- Incidents Banner -->
         ${status.incidents.filter(i => i.status !== 'resolved').map(i => `
-        <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r shadow-sm">
-            <h3 class="text-orange-900 font-bold text-lg">${i.title}</h3>
-            <p class="text-orange-800 mt-1">${i.description}</p>
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded shadow-sm">
+            <h3 class="text-orange-900 font-bold">${i.title}</h3>
+            <p class="text-orange-800 mt-1 text-sm">${i.description}</p>
             <p class="text-xs text-orange-600 mt-2 uppercase font-bold">${i.status} - ${new Date(i.updated_at).toLocaleString()}</p>
         </div>
         `).join('')}
 
         <!-- Services & Uptime Bars -->
-        <div class="bg-white rounded border border-slate-200 shadow-sm divide-y divide-slate-100">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm divide-y divide-gray-100">
             ${Object.values(status.services).map(s => `
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">${s.name}</h3>
-                    <span class="text-sm font-medium ${s.status === 'operational' ? 'text-emerald-600' : 'text-red-500'}">
+            <div class="p-5">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-800">${s.name}</h3>
+                    <span class="text-sm font-semibold ${s.status === 'operational' ? 'text-green-600' : 'text-red-500'}">
                         ${s.status === 'operational' ? 'Operational' : 'Issues'}
                     </span>
                 </div>
                 
                 <!-- Uptime Candles (30 Days) -->
-                <div class="flex gap-[2px] h-8 items-end">
+                <div class="flex gap-1 h-8 items-end">
                     ${s.history.map(day => `
-                        <div class="flex-1 rounded-sm bar-tooltip relative ${day.status === 'operational' ? 'bg-emerald-400 opacity-90 hover:opacity-100' : (day.status === 'down' ? 'bg-red-500' : 'bg-amber-400')}"
+                        <div class="flex-1 rounded-sm ${day.status === 'operational' ? 'bg-green-400' : (day.status === 'down' ? 'bg-red-500' : 'bg-orange-400')}"
                              title="${day.date}: ${day.status.toUpperCase()}"
-                             style="height: ${day.status === 'operational' ? '100%' : '100%'}">
+                             style="height: 100%;">
                         </div>
                     `).join('')}
                 </div>
-                <div class="flex justify-between text-xs text-slate-400 mt-2">
+                <div class="flex justify-between text-xs text-gray-400 mt-1">
                     <span>30 days ago</span>
                     <span>Today</span>
                 </div>
@@ -284,20 +268,20 @@ const renderPublicPage = (status) => `
         </div>
 
         <!-- Past Incident History -->
-        <div class="mt-12">
-            <h3 class="text-2xl font-bold text-slate-900 mb-6">Past Incidents</h3>
+        <div class="mt-8">
+            <h3 class="text-xl font-bold mb-4">Past Incidents</h3>
              <div class="space-y-4">
                  ${status.incidents.filter(i => i.status === 'resolved').slice(0, 5).map(i => `
-                    <div class="bg-white p-6 rounded border border-slate-200">
-                        <div class="flex justify-between items-start mb-2">
-                            <h4 class="text-lg font-bold text-slate-800">${i.title}</h4>
-                            <span class="text-xs text-slate-400">${new Date(i.created_at).toLocaleDateString()}</span>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="flex justify-between items-start mb-1">
+                            <h4 class="font-bold text-gray-800">${i.title}</h4>
+                            <span class="text-xs text-gray-400">${new Date(i.created_at).toLocaleDateString()}</span>
                         </div>
-                         <p class="text-slate-600 mb-3">${i.description}</p>
-                         <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Resolved</span>
+                         <p class="text-gray-600 text-sm mb-2">${i.description}</p>
+                         <span class="text-xs font-bold text-green-600 uppercase tracking-wider">Resolved</span>
                     </div>
                  `).join('')}
-                 ${status.incidents.length === 0 ? '<p class="text-slate-400 italic">No incidents reported in the last 14 days.</p>' : ''}
+                 ${status.incidents.length === 0 ? '<p class="text-gray-400 italic">No recent incidents.</p>' : ''}
              </div>
         </div>
 
@@ -313,27 +297,25 @@ const renderAdminCenter = (status) => `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTX Admin Center</title>
+    <title>Admin Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        body { font-family: Arial, sans-serif; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen p-6">
+<body class="bg-gray-100 text-gray-900 min-h-screen p-6">
     <div class="max-w-7xl mx-auto space-y-6">
         
         <!-- Header -->
-        <header class="flex justify-between items-center bg-white p-6 rounded border border-slate-200 shadow-sm">
+        <header class="flex justify-between items-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">VTX Admin Center</h1>
-                <p class="text-slate-500 text-sm">Operations & Incident Management</p>
+                <h1 class="text-2xl font-bold">CodeKrafts Admin</h1>
+                <p class="text-gray-500 text-sm">Operations Dashboard</p>
             </div>
              <div class="text-right">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">System Status</div>
-                <div class="text-lg font-bold ${status.system.global_status === 'operational' ? 'text-emerald-600' : 'text-red-600'}">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">System Status</div>
+                <div class="text-lg font-bold ${status.system.global_status === 'operational' ? 'text-green-600' : 'text-red-600'}">
                     ${status.system.global_status.toUpperCase()}
                 </div>
             </div>
@@ -343,34 +325,34 @@ const renderAdminCenter = (status) => `
             
             <!-- Left Col: Metrics -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Latency Graph (Classic Line) -->
-                 <div class="bg-white p-6 rounded border border-slate-200 shadow-sm">
-                    <h3 class="text-lg font-bold text-slate-800 mb-4">Live Latency Metrics</h3>
+                <!-- Latency Graph -->
+                 <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold mb-4">Live Latency</h3>
                     <div class="relative h-64 w-full">
                         <canvas id="latencyChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Service List -->
-                <div class="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Service</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Latency</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Latency</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-slate-200">
+                        <tbody class="bg-white divide-y divide-gray-200">
                             ${Object.values(status.services).map(s => `
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${s.name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.status === 'operational' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-bold rounded-full ${s.status === 'operational' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                                         ${s.status}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right text-mono font-mono">${s.latency}ms</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-mono">${s.latency}ms</td>
                             </tr>
                             `).join('')}
                         </tbody>
@@ -382,12 +364,12 @@ const renderAdminCenter = (status) => `
             <div class="space-y-6">
                 
                 <!-- Post Incident Form -->
-                <div class="bg-white p-6 rounded border border-slate-200 shadow-sm">
-                    <h3 class="text-lg font-bold text-slate-800 mb-4">Post Global Update</h3>
+                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold mb-4">Update Status</h3>
                     <form action="/vtx/2026/admincenter/incidents" method="POST" class="space-y-4">
                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Affected Service</label>
-                            <select name="affected_service" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Affected Service</label>
+                            <select name="affected_service" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
                                 <option value="all">Global (All Services)</option>
                                 <option value="api">VTX Backend API</option>
                                 <option value="supabase">Supabase Core</option>
@@ -397,51 +379,51 @@ const renderAdminCenter = (status) => `
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Title</label>
-                            <input type="text" name="title" required class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g. Database Performance Degradation">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                            <input type="text" name="title" required class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="e.g. All Systems Operational">
                         </div>
                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                            <textarea name="description" rows="5" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Detailed explanation..."></textarea>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                            <textarea name="description" rows="3" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Message..."></textarea>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1">Severity</label>
-                                <select name="severity" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm">
-                                    <option value="minor">Minor Issue</option>
-                                    <option value="major">Major Outage</option>
-                                    <option value="critical">Critical Failure</option>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Severity</label>
+                                <select name="severity" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                                    <option value="minor">Minor</option>
+                                    <option value="major">Major</option>
+                                    <option value="critical">Critical</option>
                                     <option value="maintenance">Maintenance</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                                <select name="status" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm">
-                                    <option value="investigating">Investigating</option>
-                                    <option value="identified">Identified</option>
-                                    <option value="monitoring">Monitoring</option>
-                                    <option value="resolved">Resolved</option>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Status</label>
+                                <select name="status" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                                    <option value="resolved">RESOLVED (Green)</option>
+                                    <option value="investigating">Investigating (Red)</option>
+                                    <option value="identified">Identified (Red)</option>
+                                    <option value="monitoring">Monitoring (Red)</option>
                                 </select>
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded transition-colors shadow-md">
-                            Post Incident
+                        <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded transition-colors">
+                            Update Status
                         </button>
                     </form>
                 </div>
 
                  <!-- Recent Updates List -->
-                <div class="bg-white p-6 rounded border border-slate-200 shadow-sm max-h-96 overflow-y-auto">
-                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Operations Log</h3>
+                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm max-h-96 overflow-y-auto">
+                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Recent Updates</h3>
                     <div class="space-y-4">
                         ${status.incidents.map(i => `
-                            <div class="border-l-2 ${getSeverityColor(i.severity)} pl-4 py-1">
+                            <div class="border-l-4 ${getSeverityColor(i.severity)} pl-3 py-1">
                                 <div class="flex justify-between items-start">
-                                    <h4 class="font-bold text-sm text-slate-800">${i.title}</h4>
-                                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500">${new Date(i.created_at).toLocaleDateString()}</span>
+                                    <h4 class="font-bold text-sm text-gray-800">${i.title}</h4>
+                                    <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">${new Date(i.created_at).toLocaleDateString()}</span>
                                 </div>
-                                <div class="text-xs text-slate-500 mt-1">Service: <span class="font-mono text-slate-700">${i.affected_service || 'all'}</span></div>
-                                <span class="text-[10px] uppercase font-bold mt-2 inline-block ${i.status === 'resolved' ? 'text-emerald-600' : 'text-amber-600'}">
+                                <div class="text-xs text-gray-500 mt-1">Service: <span class="font-mono text-gray-700">${i.affected_service || 'all'}</span></div>
+                                <span class="text-[10px] uppercase font-bold mt-2 inline-block ${i.status === 'resolved' ? 'text-green-600' : 'text-orange-600'}">
                                     ${i.status}
                                 </span>
                             </div>
@@ -453,7 +435,6 @@ const renderAdminCenter = (status) => `
     </div>
 
     <script>
-        // Init Chart (Classical Line Style)
         const ctx = document.getElementById('latencyChart').getContext('2d');
         const labels = ['Api', 'Supabase', 'Neon', 'Media', 'Realtime'];
         const data = [
@@ -465,23 +446,19 @@ const renderAdminCenter = (status) => `
         ];
 
         new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Latency (ms)',
                     data: data,
-                    backgroundColor: 'rgba(51, 65, 85, 0.1)',
-                    borderColor: 'rgb(51, 65, 85)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgb(51, 65, 85)',
-                    tension: 0.4,
-                    fill: true
+                    backgroundColor: '#000000',
+                    borderRadius: 4
                 }]
             },
             options: {
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+                    y: { beginAtZero: true },
                     x: { grid: { display: false } }
                 },
                 plugins: { legend: { display: false } }
