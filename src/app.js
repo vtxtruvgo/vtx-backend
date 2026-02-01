@@ -15,6 +15,9 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/ai', aiRoutes);
+// Analytics Route (Offload to Neon)
+import analyticsRoutes from './routes/analyticsRoutes.js';
+app.use('/api/analytics', analyticsRoutes);
 
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
