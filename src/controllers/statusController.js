@@ -134,16 +134,33 @@ export const getSystemStatus = async (req, res, next) => {
 
 // API to Create Incident
 export const createIncident = async (req, res) => {
-    const { title, description, severity, status, affected_service } = req.body;
+    const { title, description, severity, status, affected_service, custom_date } = req.body;
     try {
+        const createdAt = custom_date ? new Date(custom_date) : new Date();
         await query(
-            `INSERT INTO system_incidents (title, description, severity, status, affected_service) VALUES ($1, $2, $3, $4, $5)`,
-            [title, description, severity || 'minor', status || 'investigating', affected_service || 'all']
+            `INSERT INTO system_incidents (title, description, severity, status, affected_service, created_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [title, description, severity || 'minor', status || 'investigating', affected_service || 'all', createdAt]
         );
         res.redirect('/vtx/2026/admincenter');
     } catch (e) {
         console.error("Incident Creation Failed", e);
         res.status(500).send("Failed to create incident: " + e.message);
+    }
+};
+
+// API to Update Incident
+export const updateIncident = async (req, res) => {
+    const { id } = req.params;
+    const { title, description, severity, status, affected_service, custom_date } = req.body;
+    try {
+        await query(
+            `UPDATE system_incidents SET title=$1, description=$2, severity=$3, status=$4, affected_service=$5, created_at=$6, updated_at=NOW() WHERE id=$7`,
+            [title, description, severity, status, affected_service, custom_date ? new Date(custom_date) : new Date(), id]
+        );
+        res.redirect('/vtx/2026/admincenter');
+    } catch (e) {
+        console.error("Incident Update Failed", e);
+        res.status(500).send("Failed to update incident: " + e.message);
     }
 };
 
@@ -393,11 +410,11 @@ const renderAdminCenter = (status) => `
                 
                 <!-- Post Incident Form -->
                 <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-lg font-bold mb-4">Update Status</h3>
-                    <form action="/vtx/2026/admincenter/incidents" method="POST" class="space-y-4">
+                    <h3 class="text-lg font-bold mb-4" id="formTitle">Post Global Update</h3>
+                    <form action="/vtx/2026/admincenter/incidents" method="POST" class="space-y-4" id="incidentForm">
                          <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Affected Service</label>
-                            <select name="affected_service" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                            <select name="affected_service" id="field_service" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
                                 <option value="all">Global (All Services)</option>
                                 <option value="api">VTX Backend API</option>
                                 <option value="supabase">Supabase Core</option>
@@ -408,16 +425,23 @@ const renderAdminCenter = (status) => `
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Title</label>
-                            <input type="text" name="title" required class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="e.g. All Systems Operational">
+                            <input type="text" name="title" id="field_title" required class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="e.g. All Systems Operational">
                         </div>
                          <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
-                            <textarea name="description" rows="3" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Message..."></textarea>
+                            <textarea name="description" id="field_description" rows="3" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Message..."></textarea>
                         </div>
+                        
+                        <!-- New Date Field for Backdating -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Date Time (Backdate)</label>
+                            <input type="datetime-local" name="custom_date" id="field_date" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                        </div>
+
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Severity</label>
-                                <select name="severity" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                                <select name="severity" id="field_severity" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
                                     <option value="minor">Minor</option>
                                     <option value="major">Major</option>
                                     <option value="critical">Critical</option>
@@ -426,7 +450,7 @@ const renderAdminCenter = (status) => `
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Status</label>
-                                <select name="status" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
+                                <select name="status" id="field_status" class="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 text-sm">
                                     <option value="resolved">RESOLVED (Green)</option>
                                     <option value="investigating">Investigating (Red)</option>
                                     <option value="identified">Identified (Red)</option>
@@ -434,9 +458,14 @@ const renderAdminCenter = (status) => `
                                 </select>
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded transition-colors">
-                            Update Status
-                        </button>
+                        <div class="flex gap-2">
+                             <button type="submit" id="submitBtn" class="flex-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded transition-colors">
+                                Post Incident
+                            </button>
+                            <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded transition-colors">
+                                Cancel
+                            </button>
+                        </div>
                     </form>
                 </div>
 
@@ -449,18 +478,21 @@ const renderAdminCenter = (status) => `
                                 <div>
                                     <div class="flex items-center gap-2">
                                         <h4 class="font-bold text-sm text-gray-800">${i.title}</h4>
-                                        <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">${new Date(i.created_at).toLocaleDateString()}</span>
+                                        <span class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">${new Date(i.created_at).toLocaleString()}</span>
                                     </div>
                                     <div class="text-xs text-gray-500 mt-1">Service: <span class="font-mono text-gray-700">${i.affected_service || 'all'}</span></div>
                                     <span class="text-[10px] uppercase font-bold mt-2 inline-block ${i.status === 'resolved' ? 'text-green-600' : 'text-orange-600'}">
                                         ${i.status}
                                     </span>
                                 </div>
-                                <form action="/vtx/2026/admincenter/incidents/${i.id}/delete" method="POST" onsubmit="return confirm('Delete this incident forever?');">
-                                    <button type="submit" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-700 font-bold px-2 py-1 text-xs transition-opacity">
-                                        ✕
-                                    </button>
-                                </form>
+                                <div class="flex flex-col items-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <!-- Delete -->
+                                    <form action="/vtx/2026/admincenter/incidents/${i.id}/delete" method="POST" onsubmit="return confirm('Delete this incident?');">
+                                        <button type="submit" class="text-red-400 hover:text-red-700 font-bold text-xs" title="Delete">✕</button>
+                                    </form>
+                                    <!-- Edit -->
+                                    <button onclick='editIncident(${JSON.stringify(i).replace(/'/g, "&#39;")})' class="text-blue-400 hover:text-blue-700 font-bold text-xs" title="Edit">✎</button>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -499,6 +531,39 @@ const renderAdminCenter = (status) => `
                 plugins: { legend: { display: false } }
             }
         });
+
+        // Edit Logic
+        function editIncident(i) {
+            document.getElementById('formTitle').innerText = 'Edit Incident';
+            document.getElementById('submitBtn').innerText = 'Update Incident';
+            document.getElementById('cancelBtn').classList.remove('hidden');
+            
+            document.getElementById('incidentForm').action = '/vtx/2026/admincenter/incidents/' + i.id + '/update';
+            
+            document.getElementById('field_service').value = i.affected_service || 'all';
+            document.getElementById('field_title').value = i.title;
+            document.getElementById('field_description').value = i.description;
+            document.getElementById('field_severity').value = i.severity;
+            document.getElementById('field_status').value = i.status;
+            
+            // Format Date for datetime-local (YYYY-MM-DDTHH:mm)
+            // Postgres timestamp is ISO, so we slice it.
+            // But we need local time. Ideally we should handle timezone but for simple admin this is ok.
+            const d = new Date(i.created_at);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            document.getElementById('field_date').value = d.toISOString().slice(0, 16);
+            
+            window.scrollTo(0, 0);
+        }
+
+        function resetForm() {
+            document.getElementById('formTitle').innerText = 'Post Global Update';
+            document.getElementById('submitBtn').innerText = 'Post Incident';
+            document.getElementById('cancelBtn').classList.add('hidden');
+            document.getElementById('incidentForm').action = '/vtx/2026/admincenter/incidents';
+            document.getElementById('incidentForm').reset();
+            document.getElementById('field_date').value = ''; 
+        }
     </script>
 </body>
 </html>

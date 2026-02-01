@@ -11,9 +11,10 @@ router.get('/', getSystemStatus);
 router.get('/vtx/2026/admincenter', getSystemStatus);
 
 // Incident Posting
-import { createIncident, resolveAllIncidents, deleteIncident } from '../controllers/statusController.js';
+import { createIncident, resolveAllIncidents, deleteIncident, updateIncident } from '../controllers/statusController.js';
 import bodyParser from 'express'; // Ensure body parser is used in app.js
 router.post('/vtx/2026/admincenter/incidents', createIncident);
+router.post('/vtx/2026/admincenter/incidents/:id/update', updateIncident); // New Update Route
 router.post('/vtx/2026/admincenter/incidents/:id/delete', deleteIncident);
 router.get('/vtx/2026/admincenter/resolve_all', resolveAllIncidents);
 
