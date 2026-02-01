@@ -6,124 +6,129 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
-export const getSystemStatus = async (req, res) => {
-    // Core Services Definition
-    const servicesDef = {
-        api: { name: "VTX Backend API", type: 'compute' },
-        supabase: { name: "Supabase (Core)", type: 'database' },
-        neon: { name: "Neon (Logs)", type: 'database' },
-        cloudinary: { name: "Cloudinary (Media)", type: 'storage' },
-        firebase: { name: "Firebase (Realtime)", type: 'realtime' }
-    };
-
-    // Initialize Status Object
-    const status = {
-        system: {
-            name: "CodeCrafts Ecosystem",
-            environment: process.env.NODE_ENV || 'production',
-            timestamp: new Date().toISOString(),
-            global_status: 'operational'
-        },
-        services: {},
-        incidents: []
-    };
-
-    const start = Date.now();
-
-    // 1. Parallel Live Checks
-    // We create a temporary map to hold live check results
-    const liveResults = {};
-    await Promise.all([
-        checkSupabase().then(r => liveResults.supabase = r),
-        checkNeon().then(r => liveResults.neon = r),
-        checkCloudinary().then(r => liveResults.cloudinary = r),
-        checkFirebase().then(r => liveResults.firebase = r),
-        // API is always up if this code runs, but let's mock latency
-        Promise.resolve({ status: 'operational', latency: 0 }).then(r => liveResults.api = r)
-    ]);
-    liveResults.api.latency = Date.now() - start;
-
-    // 2. Fetch Incidents (Last 14 Days for logic, but we show 7)
-    let rows = [];
+export const getSystemStatus = async (req, res, next) => {
     try {
-        const result = await query(`
+        // Core Services Definition
+        const servicesDef = {
+            api: { name: "VTX Backend API", type: 'compute' },
+            supabase: { name: "Supabase (Core)", type: 'database' },
+            neon: { name: "Neon (Logs)", type: 'database' },
+            cloudinary: { name: "Cloudinary (Media)", type: 'storage' },
+            firebase: { name: "Firebase (Realtime)", type: 'realtime' }
+        };
+
+        // Initialize Status Object
+        const status = {
+            system: {
+                name: "CodeCrafts Ecosystem",
+                environment: process.env.NODE_ENV || 'production',
+                timestamp: new Date().toISOString(),
+                global_status: 'operational'
+            },
+            services: {},
+            incidents: []
+        };
+
+        const start = Date.now();
+
+        // 1. Parallel Live Checks
+        // We create a temporary map to hold live check results
+        const liveResults = {};
+        await Promise.all([
+            checkSupabase().then(r => liveResults.supabase = r),
+            checkNeon().then(r => liveResults.neon = r),
+            checkCloudinary().then(r => liveResults.cloudinary = r),
+            checkFirebase().then(r => liveResults.firebase = r),
+            // API is always up if this code runs, but let's mock latency
+            Promise.resolve({ status: 'operational', latency: 0 }).then(r => liveResults.api = r)
+        ]);
+        liveResults.api.latency = Date.now() - start;
+
+        // 2. Fetch Incidents (Last 14 Days for logic, but we show 7)
+        let rows = [];
+        try {
+            const result = await query(`
             SELECT * FROM system_incidents 
             WHERE created_at > NOW() - INTERVAL '14 days' 
             ORDER BY created_at DESC
         `);
-        rows = result ? result.rows : [];
-    } catch (e) {
-        console.error("Failed to fetch incidents", e);
-    }
-    status.incidents = rows;
-
-    // 3. Process History (Candles) & Final Status Override
-    // Generate last 7 days dates (YYYY-MM-DD)
-    const historyDates = Array.from({ length: 30 }, (_, i) => { // 30 days looks like a "bar chart"
-        const d = new Date();
-        d.setDate(d.getDate() - (29 - i));
-        return d.toISOString().split('T')[0];
-    });
-
-    Object.keys(servicesDef).forEach(key => {
-        const def = servicesDef[key];
-        const live = liveResults[key] || { status: 'unknown', latency: 0 };
-
-        // Check for ACTIVE incidents for this service
-        const activeIncident = rows.find(i =>
-            i.status !== 'resolved' &&
-            (i.affected_service === key || i.affected_service === 'all')
-        );
-
-        // Override status if there is an active incident
-        let finalStatus = live.status;
-        if (activeIncident) {
-            if (activeIncident.severity === 'critical') finalStatus = 'down';
-            else if (activeIncident.severity === 'major') finalStatus = 'degraded';
-            else if (activeIncident.severity === 'maintenance') finalStatus = 'maintenance';
-            else finalStatus = 'degraded'; // minor
+            rows = result ? result.rows : [];
+        } catch (e) {
+            console.error("Failed to fetch incidents", e);
         }
+        status.incidents = rows;
 
-        // Build History Bars
-        const history = historyDates.map(dateStr => {
-            // Find incidents on this day
-            const dayIncidents = rows.filter(i =>
-                i.created_at.startsWith(dateStr) &&
+        // 3. Process History (Candles) & Final Status Override
+        // Generate last 7 days dates (YYYY-MM-DD)
+        const historyDates = Array.from({ length: 30 }, (_, i) => { // 30 days looks like a "bar chart"
+            const d = new Date();
+            d.setDate(d.getDate() - (29 - i));
+            return d.toISOString().split('T')[0];
+        });
+
+        Object.keys(servicesDef).forEach(key => {
+            const def = servicesDef[key];
+            const live = liveResults[key] || { status: 'unknown', latency: 0 };
+
+            // Check for ACTIVE incidents for this service
+            const activeIncident = rows.find(i =>
+                i.status !== 'resolved' &&
                 (i.affected_service === key || i.affected_service === 'all')
             );
 
-            // Determine day color
-            let dayStatus = 'operational';
-            if (dayIncidents.some(i => i.severity === 'critical')) dayStatus = 'down';
-            else if (dayIncidents.some(i => i.severity === 'major')) dayStatus = 'degraded';
-            else if (dayIncidents.some(i => i.severity === 'minor')) dayStatus = 'degraded';
+            // Override status if there is an active incident
+            let finalStatus = live.status;
+            if (activeIncident) {
+                if (activeIncident.severity === 'critical') finalStatus = 'down';
+                else if (activeIncident.severity === 'major') finalStatus = 'degraded';
+                else if (activeIncident.severity === 'maintenance') finalStatus = 'maintenance';
+                else finalStatus = 'degraded'; // minor
+            }
 
-            return { date: dateStr, status: dayStatus };
+            // Build History Bars
+            const history = historyDates.map(dateStr => {
+                // Find incidents on this day
+                const dayIncidents = rows.filter(i =>
+                    i.created_at.startsWith(dateStr) &&
+                    (i.affected_service === key || i.affected_service === 'all')
+                );
+
+                // Determine day color
+                let dayStatus = 'operational';
+                if (dayIncidents.some(i => i.severity === 'critical')) dayStatus = 'down';
+                else if (dayIncidents.some(i => i.severity === 'major')) dayStatus = 'degraded';
+                else if (dayIncidents.some(i => i.severity === 'minor')) dayStatus = 'degraded';
+
+                return { date: dateStr, status: dayStatus };
+            });
+
+            status.services[key] = {
+                ...def,
+                status: finalStatus,
+                latency: live.latency,
+                history: history
+            };
         });
 
-        status.services[key] = {
-            ...def,
-            status: finalStatus,
-            latency: live.latency,
-            history: history
-        };
-    });
+        // 4. Determine Global Status
+        const allStatuses = Object.values(status.services).map(s => s.status);
+        if (allStatuses.includes('down')) status.system.global_status = 'major_outage';
+        else if (allStatuses.includes('degraded')) status.system.global_status = 'degraded';
+        else if (allStatuses.includes('maintenance')) status.system.global_status = 'maintenance';
 
-    // 4. Determine Global Status
-    const allStatuses = Object.values(status.services).map(s => s.status);
-    if (allStatuses.includes('down')) status.system.global_status = 'major_outage';
-    else if (allStatuses.includes('degraded')) status.system.global_status = 'degraded';
-    else if (allStatuses.includes('maintenance')) status.system.global_status = 'maintenance';
-
-    // Response
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Force fresh content
-    if (req.accepts('html')) {
-        if (req.originalUrl.includes('/admincenter') || req.path.includes('/admincenter')) {
-            return res.send(renderAdminCenter(status));
+        // Response
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Force fresh content
+        if (req.accepts('html')) {
+            if (req.originalUrl.includes('/admincenter') || req.path.includes('/admincenter')) {
+                return res.send(renderAdminCenter(status));
+            }
+            return res.send(renderPublicPage(status));
         }
-        return res.send(renderPublicPage(status));
+        return res.json(status);
+    } catch (e) {
+        // Pass async errors to Global Error Handler (app.js) instead of crashing
+        next(e);
     }
-    return res.json(status);
 };
 
 // ... (createIncident stays same) ...
