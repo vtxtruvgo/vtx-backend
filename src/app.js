@@ -10,8 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.json({ status: 'active', service: 'VTX Backend', version: '1.0.0' });
+// Status Page & Root Handler
+import statusRoutes from './routes/statusRoutes.js';
+import { getSystemStatus } from './controllers/statusController.js';
+
+// If accessing via status subdomain or root, show status page
+app.get('/', (req, res, next) => {
+  // Optional: Check hostname if you want to be strict, but for now serve status at root
+  // to make status.codekraft.truvgo.me work out of the box.
+  return getSystemStatus(req, res);
 });
 
 app.use('/api/ai', aiRoutes);
@@ -19,9 +26,7 @@ app.use('/api/ai', aiRoutes);
 import analyticsRoutes from './routes/analyticsRoutes.js';
 app.use('/api/analytics', analyticsRoutes);
 
-// Status Page
-import statusRoutes from './routes/statusRoutes.js';
-app.use('/status', statusRoutes); // Accessible at /status (HTML) and /status?format=json (JSON)
+app.use('/status', statusRoutes); // Accessible at /status (HTML)
 
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
